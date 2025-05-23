@@ -25,3 +25,20 @@ Berikut adalah screenshot yang menunjukkan server dan tiga client, dengan pesan 
 Penjelasan:
 Aplikasi ini menunjukkan konsep broadcast chat menggunakan WebSocket. Ketika sebuah client mengirim pesan, pesan tersebut dikirim ke server melalui koneksi WebSocket. Server kemudian menerima pesan tersebut dan menyebarkannya kembali ke semua client lain yang terhubung. Ini memanfaatkan sifat asynchronous dari WebSocket di mana komunikasi dua arah (full-duplex) dapat terjadi secara real-time tanpa harus melakukan polling terus-menerus. Setiap client dan server secara asinkron menunggu dan memproses event (pesan masuk atau keluar).
 
+## Experiment 2.2: Modifying port
+
+Saya mengubah port WebSocket dari `2000` menjadi `8080`. Perubahan ini perlu dilakukan di dua tempat agar client dan server dapat berkomunikasi pada port yang sama:
+
+1.  **`src/bin/client.rs`**: Di sini, saya mengubah URI yang digunakan oleh `ClientBuilder` untuk terhubung ke server:
+    ```rust
+    ClientBuilder::from_uri(Uri::from_static("ws://127.0.0.1:8080"))
+    ```
+2.  **`src/bin/server.rs`**: Di sini, saya mengubah alamat yang di-bind oleh `TcpListener` untuk mendengarkan koneksi masuk:
+    ```rust
+    let listener = TcpListener::bind("127.0.0.1:8080").await?;
+    ```
+    Saya juga memperbarui pesan output server agar sesuai dengan port yang baru.
+
+Aplikasi masih berjalan dengan benar setelah perubahan ini. Ini menegaskan bahwa protokol WebSocket (ws) digunakan untuk komunikasi, dan perubahan port hanya perlu disinkronkan antara kedua ujung koneksi (client dan server). Protokol `ws` didefinisikan sebagai bagian dari URI `ws://127.0.0.1:8080`.
+
+![alt text](ss2.png)
