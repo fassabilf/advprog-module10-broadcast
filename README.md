@@ -42,3 +42,41 @@ Saya mengubah port WebSocket dari `2000` menjadi `8080`. Perubahan ini perlu dil
 Aplikasi masih berjalan dengan benar setelah perubahan ini. Ini menegaskan bahwa protokol WebSocket (ws) digunakan untuk komunikasi, dan perubahan port hanya perlu disinkronkan antara kedua ujung koneksi (client dan server). Protokol `ws` didefinisikan sebagai bagian dari URI `ws://127.0.0.1:8080`.
 
 ![alt text](ss2.png)
+
+## Experiment 2.3: Small changes, add IP and Port
+
+Saya memodifikasi aplikasi chat untuk menyertakan alamat IP dan port pengirim pada setiap pesan yang di-broadcast ke client. Ini dilakukan dengan mengubah bagian `src/bin/server.rs` di mana pesan diterima dari client dan kemudian di-broadcast.
+
+Perubahan utama ada pada bagian `handle_connection` (atau di dalam `tokio::spawn` loop yang menangani client):
+
+```rust
+    loop {
+        tokio::select! {
+            incoming = ws_stream.next() => {
+                match incoming {
+                    Some(Ok(msg)) => {
+                        if let Some(text) = msg.as_text() {
+                            println!("From client {addr:?} {text:?}");
+                            bcast_tx.send(format!("{addr}:{text}"))?;
+                        }
+                    }
+                    Some(Err(err)) => return Err(err.into()),
+                    None => return Ok(()),
+                }
+            }
+            msg = bcast_rx.recv() => {
+                ws_stream.send(Message::text(msg?)).await?;
+            }
+        }
+    }
+
+// ...
+```
+Dengan perubahan ini, setiap pesan yang diterima oleh client lain akan diawali dengan alamat IP:Port dari client yang mengirim pesan. Ini memungkinkan identifikasi pengirim meskipun belum ada fitur nama pengguna.
+
+Berikut adalah screenshot yang menunjukkan output di terminal client setelah modifikasi ini:
+
+![alt text](image.png)
+
+Penjelasan:
+Pesan di dalam aplikasi ini diteruskan sebagai String biasa. Dengan memformat String tersebut di sisi server sebelum di-broadcast, kita dapat menambahkan informasi tambahan seperti peer_addr (yang sudah tersedia di server saat koneksi dibuat). Client kemudian hanya menerima String tersebut dan mencetaknya apa adanya. Ini menunjukkan fleksibilitas dalam memanipulasi data sebelum broadcast di aplikasi chat asynchronous.
